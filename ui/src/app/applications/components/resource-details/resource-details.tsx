@@ -53,12 +53,13 @@ export const ResourceDetails = (props: ResourceDetailsProps) => {
         tabs: Tab[],
         execEnabled: boolean,
         execAllowed: boolean,
-        logsAllowed: boolean
+        logsAllowed: boolean,
+        eventsAllowed: boolean
     ) => {
         if (!node || node === undefined) {
             return [];
         }
-        if (state) {
+        if (state && eventsAllowed) {
             const numErrors = events.filter(event => event.type !== 'Normal').reduce((total, event) => total + event.count, 0);
             tabs.push({
                 title: 'EVENTS',
@@ -263,8 +264,9 @@ export const ResourceDetails = (props: ResourceDetailsProps) => {
                             resQuery.version = AppUtils.parseApiVersion(controlled.targetState.apiVersion).version;
                         }
                         const liveState = await services.applications.getResource(application.metadata.name, application.metadata.namespace, resQuery).catch(() => null);
+                        const eventsAllowed = await services.accounts.canI('events', 'list', application.spec.project + '/' + application.metadata.name);
                         const events =
-                            (liveState &&
+                            (eventsAllowed && liveState &&
                                 (await services.applications.resourceEvents(application.metadata.name, application.metadata.namespace, {
                                     name: liveState.metadata.name,
                                     namespace: liveState.metadata.namespace,
@@ -285,7 +287,7 @@ export const ResourceDetails = (props: ResourceDetailsProps) => {
                         const execEnabled = settings.execEnabled;
                         const logsAllowed = await services.accounts.canI('logs', 'get', application.spec.project + '/' + application.metadata.name);
                         const execAllowed = await services.accounts.canI('exec', 'create', application.spec.project + '/' + application.metadata.name);
-                        return {controlledState, liveState, events, podState, execEnabled, execAllowed, logsAllowed};
+                        return { controlledState, liveState, events, podState, execEnabled, execAllowed, logsAllowed, eventsAllowed };
                     }}>
                     {data => (
                         <React.Fragment>
